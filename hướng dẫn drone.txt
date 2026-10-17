@@ -1,0 +1,94 @@
+================================================================================
+          HƯỚNG DẪN VẬN HÀNH DRONE & MẮT THẦN AI YOLOV8 (CÁCH 2)
+================================================================================
+Thư mục dự án: $HOME/Workspace/260727-drone-setup
+
+MÔ HÌNH HOẠT ĐỘNG:
+- Terminal 1: Bật Agent liên lạc mạng (DDS)
+- Terminal 2: Bật Drone & Thế giới 3D Gazebo (PX4 SITL)
+- Terminal 3: Bật Cầu nối Camera đưa hình ảnh vào ROS 2
+- Terminal 4: Bật AI YOLOv8 nhận diện người/xe thời gian thực (Cửa sổ FPV)
+
+
+--------------------------------------------------------------------------------
+BƯỚC 1: KHỞI ĐỘNG HỆ THỐNG (Mở lần lượt 4 Terminal)
+--------------------------------------------------------------------------------
+
+[TERMINAL 1] - Khởi động Micro XRCE-DDS Agent
+------------------------------------------------
+source "$HOME/Workspace/260727-drone-setup/env.sh"
+"$XRCE_AGENT" udp4 -p 8888
+
+>> Dấu hiệu OK: Hiện thông báo "running... port: 8888". Để nguyên terminal này.
+
+
+[TERMINAL 2] - Khởi động PX4 + Mô phỏng Gazebo 3D
+------------------------------------------------
+source "$HOME/Workspace/260727-drone-setup/env.sh"
+cd "$PX4_DIR"
+source "$PX4_VENV/bin/activate"
+make px4_sitl "$PX4_SIM_MODEL"
+
+>> Dấu hiệu OK: Cửa sổ Gazebo 3D hiện lên với chiếc drone, terminal dừng ở dấu nhắc:
+   pxh>
+
+
+[TERMINAL 3] - Bật Cầu nối Camera (Gazebo -> ROS 2)
+------------------------------------------------
+bash "$HOME/Workspace/260727-drone-setup/start_camera_bridge.sh"
+
+>> Dấu hiệu OK: Báo "KHỞI ĐỘNG CẦU NỐI CAMERA" và bắt đầu truyền luồng ảnh.
+
+
+[TERMINAL 4] - Bật AI YOLOv8 Nhận Diện Thời Gian Thực
+------------------------------------------------
+source /opt/ros/jazzy/setup.bash
+source "$HOME/Workspace/260727-drone-setup/.venv/bin/activate"
+python "$HOME/Workspace/260727-drone-setup/drone_yolo_detect.py"
+
+>> Dấu hiệu OK: Cửa sổ riêng "Drone FPV Camera - YOLOv8 AI Detection" bật lên!
+   Hiển thị hình ảnh trực tiếp từ mũi drone.
+
+
+--------------------------------------------------------------------------------
+BƯỚC 2: ĐIỀU KHIỂN DRONE CẤT CÁNH & QUAN SÁT AI
+--------------------------------------------------------------------------------
+
+Tại [TERMINAL 2] (chỗ có dấu nhắc "pxh>"), bạn gõ lần lượt 2 lệnh:
+
+1. Mở khóa an toàn:
+   param set NAV_DLL_ACT 0
+
+2. Cho Drone cất cánh:
+   commander takeoff
+
+>> KẾT QUẢ:
+   - Trong cửa sổ Gazebo 3D: Drone bay lên cao ~2.5m và đứng yên trên không.
+   - Trong cửa sổ AI Camera: Bạn sẽ thấy camera quét mặt đất từ trên cao. Khi có
+     người (person), ô tô (car) xuất hiện, AI sẽ tự động đóng khung màu và hiện
+     tỉ lệ nhận diện thời gian thực (ví dụ: person 91%).
+
+* Muốn hạ cánh: Gõ tại Terminal 2 lệnh:
+  commander land
+
+
+--------------------------------------------------------------------------------
+BƯỚC 3 (TÙY CHỌN): CHO DRONE BAY TUẦN TRA TỰ ĐỘNG 30S
+--------------------------------------------------------------------------------
+Nếu muốn drone tự bay lượn tuần tra một vòng để camera quét xung quanh:
+Mở thêm [TERMINAL 5]:
+
+source "$HOME/Workspace/260727-drone-setup/env.sh"
+source "$PX4_VENV/bin/activate"
+python "$HOME/Workspace/260727-drone-setup/fly_around_30s.py" --duration 30 --alt 5 --radius 6 --pattern square
+
+
+--------------------------------------------------------------------------------
+BƯỚC 4: DỌN DẸP / TẮT SẠCH MÁY KHI KẾT THÚC
+--------------------------------------------------------------------------------
+Khi bay xong hoặc muốn nghỉ:
+1. Nhấn tổ hợp phím Ctrl + C ở tất cả các Terminal đang mở.
+2. Mở 1 terminal bất kỳ dán lệnh sau để dọn sạch hoàn toàn các tiến trình:
+
+killall -9 gz px4 MicroXRCEAgent ros_gz_bridge parameter_bridge 2>/dev/null; pkill -9 -f "drone_yolo_detect" 2>/dev/null || true
+================================================================================

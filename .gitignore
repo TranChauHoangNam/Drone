@@ -1,0 +1,25 @@
+# Datasets and trained/downloaded model weights
+/datasets/
+/weights/
+*.pt
+*.onnx
+*.zip
+
+# Local credentials and submission artifacts
+.drone_team_token
+submission_*.tar.gz
+submission_*.sha256
+
+# Generated output and test caches
+**/output/
+**/__pycache__/
+**/.pytest_cache/
+**/challenger_harness_output.json
+**/challenge_m1_results.json
+*.py[cod]
+*.cache
+*.log
+
+# Internal collaboration notes and competition handouts
+/.agents/
+*.pdf
